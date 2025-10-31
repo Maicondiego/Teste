@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notificação com Contador</title>
+<title>Notificação em Loop com SW</title>
 <style>
 body {font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#f3f4f6; margin:0;}
 .card {background:white; padding:28px; border-radius:12px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.1); width:360px;}
@@ -15,7 +15,7 @@ button {padding:10px 16px; border:none; border-radius:10px; cursor:pointer; font
 </head>
 <body>
 <div class="card">
-<h1>Notificação em 30 segundos</h1>
+<h1>Notificação em Loop</h1>
 <button id="btnTest" class="primary">Testar Notificação</button>
 <div id="contador">30 segundos carregando...</div>
 </div>
@@ -30,45 +30,63 @@ const contadorDiv = document.getElementById('contador');
 const tempoTotal = 30; 
 let tempoRestante = tempoTotal;
 
-// Mostra toast
+// Toast
 function showToast(msg,time=2200){toast.textContent=msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none',time);}
 
-// Função de notificação
+// Mostra notificação usando Service Worker
 function showNotification(title, body){
-  if(Notification.permission==='granted'){
-    new Notification(title,{body, icon:'https://cdn-icons-png.flaticon.com/512/2488/2488921.png'});
+  if(Notification.permission==='granted' && 'serviceWorker' in navigator){
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, {
+        body: body,
+        icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488921.png',
+        data: {url: '/'},
+        tag: 'loop-notify'
+      });
+    });
     showToast(body);
   }else{
-    showToast('Permissão não concedida.');
+    showToast('Permissão não concedida ou SW não registrado.');
   }
 }
 
-// Contador regressivo
-function startCountdown(){
+// Contador regressivo em loop
+function startCountdownLoop(){
+  tempoRestante = tempoTotal;
   contadorDiv.textContent = `${tempoRestante} segundos carregando...`;
-  const interval = setInterval(()=>{
+
+  setInterval(()=>{
     tempoRestante--;
     if(tempoRestante > 0){
       contadorDiv.textContent = `${tempoRestante} segundos carregando...`;
     } else {
-      clearInterval(interval);
-      contadorDiv.textContent = `0 segundos - Notificação disparada!`;
       showNotification('Hora chegou ⏰','Seu tempo acabou!');
+      tempoRestante = tempoTotal; // reinicia contador
+      contadorDiv.textContent = `${tempoRestante} segundos carregando...`;
     }
   }, 1000);
 }
 
-// Botão de teste dispara notificação instantânea
+// Botão de teste
 btnTest.addEventListener('click', ()=>{
   showNotification('Teste ⏰','Esta é uma notificação de teste!');
 });
 
-// Inicia contador automaticamente
-if(Notification.permission==='granted'){
-  startCountdown();
-} else {
-  showToast('Aceite a permissão de notificação antes.');
+// Registro do Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js')
+  .then(()=>console.log('✅ SW registrado'))
+  .catch(err=>console.error('❌ Erro ao registrar SW:',err));
 }
+
+// Inicia loop automaticamente se permissão concedida
+Notification.requestPermission().then(permission => {
+  if(permission === 'granted'){
+    startCountdownLoop();
+  } else {
+    showToast('Aceite a permissão de notificação para o loop funcionar.');
+  }
+});
 </script>
 </body>
 </html>
