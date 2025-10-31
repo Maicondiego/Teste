@@ -1,92 +1,142 @@
-<!DOCccccTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notificação em Loop com SW</title>
-<style>
-body {font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#f3f4f6; margin:0;}
-.card {background:white; padding:28px; border-radius:12px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.1); width:360px;}
-button {padding:10px 16px; border:none; border-radius:10px; cursor:pointer; font-weight:600; margin:5px;}
-.primary {background:#2563eb;color:white;}
-#toast {position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#111;color:white; padding:10px 14px; border-radius:8px; display:none;}
-#contador {margin-top:10px; font-size:18px; font-weight:bold;}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Site de Notificação 1</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    #loginBtn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #28a745;
+    }
+
+    #adminArea {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 30px;
+    }
+
+    textarea {
+      width: 300px;
+      height: 100px;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-<div class="card">
-<h1>Notificação em Loop</h1>
-<button id="btnTest" class="primary">Testar Notificação</button>
-<div id="contador">30 segundos carregando...</div>
-</div>
-<div id="toast">Boaa ✨</div>
+  <h2>Site de Notificação 1</h2>
+  <button id="loginBtn">Logar</button>
+  <button id="permBtn">Pedir permissão</button>
+  <button id="testBtn">Testar</button>
 
-<script>
-const btnTest = document.getElementById('btnTest');
-const toast = document.getElementById('toast');
-const contadorDiv = document.getElementById('contador');
+  <div id="adminArea">
+    <h3>Painel de envio</h3>
+    <textarea id="msgText" placeholder="Escreva a mensagem da notificação..."></textarea><br>
+    <button id="sendBtn">Enviar Notificação</button>
+  </div>
 
-// CONFIGURAÇÃO: tempo em segundos
-const tempoTotal = 30; 
-let tempoRestante = tempoTotal;
+  <script>
+    // === CONFIGURAÇÃO DO FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYa8tuJHf0JZ1ue6BZO6h-jTZCsPo7ze4",
+  authDomain: "site-notificacao-1.firebaseapp.com",
+  projectId: "site-notificacao-1",
+  storageBucket: "site-notificacao-1.firebasestorage.app",
+  messagingSenderId: "236195144349",
+  appId: "1:236195144349:web:52f90a57f2f6e986bcaa74"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
 
-// Toast
-function showToast(msg,time=2200){toast.textContent=msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none',time);}
-
-// Mostra notificação usando Service Worker
-function showNotification(title, body){
-  if(Notification.permission==='granted' && 'serviceWorker' in navigator){
-    navigator.serviceWorker.ready.then(reg => {
-      reg.showNotification(title, {
-        body: body,
-        icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488921.png',
-        data: {url: '/'},
-        tag: 'loop-notify'
-      });
+    // === PEDIR PERMISSÃO DE NOTIFICAÇÃO ===
+    document.getElementById("permBtn").addEventListener("click", async () => {
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === "granted") {
+          const token = await messaging.getToken({
+            vapidKey: "SUA_VAPID_KEY_AQUI"
+          });
+          console.log("Token:", token);
+          alert("Permissão concedida! Token gerado.");
+        } else {
+          alert("Permissão negada para notificações.");
+        }
+      } catch (e) {
+        console.error(e);
+      }
     });
-    showToast(body);
-  }else{
-    showToast('Permissão não concedida ou SW não registrado.');
-  }
-}
 
-// Contador regressivo em loop
-function startCountdownLoop(){
-  tempoRestante = tempoTotal;
-  contadorDiv.textContent = `${tempoRestante} segundos carregando...`;
+    // === TESTAR NOTIFICAÇÃO LOCAL ===
+    document.getElementById("testBtn").addEventListener("click", () => {
+      if (Notification.permission === "granted") {
+        new Notification("Teste de notificação 🔔", {
+          body: "Funcionou! 🚀",
+          icon: "https://www.svgrepo.com/show/353655/notification-bell.svg"
+        });
+      } else {
+        alert("Primeiro permita as notificações!");
+      }
+    });
 
-  setInterval(()=>{
-    tempoRestante--;
-    if(tempoRestante > 0){
-      contadorDiv.textContent = `${tempoRestante} segundos carregando...`;
-    } else {
-      showNotification('Hora chegou ⏰','Seu tempo acabou!');
-      tempoRestante = tempoTotal; // reinicia contador
-      contadorDiv.textContent = `${tempoRestante} segundos carregando...`;
-    }
-  }, 1000);
-}
+    // === LOGIN ADMIN ===
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const nome = prompt("Nome:");
+      const senha = prompt("Senha:");
+      if (nome === "maicondiego" && senha === "2011") {
+        document.getElementById("adminArea").style.display = "flex";
+        alert("Login realizado com sucesso!");
+      } else {
+        alert("Nome ou senha incorretos!");
+      }
+    });
 
-// Botão de teste
-btnTest.addEventListener('click', ()=>{
-  showNotification('Teste ⏰','Esta é uma notificação de teste!');
-});
+    // === ENVIAR NOTIFICAÇÃO VIA FIREBASE (ADMIN) ===
+    document.getElementById("sendBtn").addEventListener("click", async () => {
+      const texto = document.getElementById("msgText").value;
+      if (!texto) return alert("Digite uma mensagem primeiro!");
 
-// Registro do Service Worker
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('service-worker.js')
-  .then(()=>console.log('✅ SW registrado'))
-  .catch(err=>console.error('❌ Erro ao registrar SW:',err));
-}
+      // Aqui normalmente você chamaria o servidor para mandar via FCM
+      alert("Notificação enviada (simulação) com o texto: " + texto);
+      // 👉 Para envio real, use um servidor com o Firebase Admin SDK para enviar aos tokens salvos.
+    });
 
-// Inicia loop automaticamente se permissão concedida
-Notification.requestPermission().then(permission => {
-  if(permission === 'granted'){
-    startCountdownLoop();
-  } else {
-    showToast('Aceite a permissão de notificação para o loop funcionar.');
-  }
-});
-</script>
+    // === RECEBER NOTIFICAÇÃO EM BACKGROUND ===
+    messaging.onMessage((payload) => {
+      console.log("Mensagem recebida:", payload);
+      const { title, body, icon } = payload.notification;
+      new Notification(title, { body, icon });
+    });
+  </script>
 </body>
 </html>
