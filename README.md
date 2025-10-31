@@ -132,7 +132,7 @@
             tag: 'credito-notify'
           });
         });
-      }, 60000); // 1 minuto
+      }, 10000); // 1 minuto
     }
 
     async function askPermission() {
