@@ -1,30 +1,60 @@
-# Teste
 <!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pedir permissão de notificação — Boaa</title>
+  <title>Notificação Boaa</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#f3f4f6;margin:0}
-    .card{background:white;padding:28px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.08);width:360px;text-align:center}
-    h1{margin:0 0 12px;font-size:20px}
-    p{margin:0 0 18px;color:#444}
-    button{cursor:pointer;padding:10px 16px;border-radius:10px;border:0;font-weight:600}
-    .primary{background:#2563eb;color:white}
-    .muted{background:#e5e7eb;color:#111;margin-left:8px}
-    #status{margin-top:14px;font-size:14px;color:#066}
-    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:8px;display:none}
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f3f4f6;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      padding: 28px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(2,6,23,0.08);
+      width: 360px;
+      text-align: center;
+    }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    p { margin: 0 0 18px; color: #444; }
+    button {
+      cursor: pointer;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 0;
+      font-weight: 600;
+    }
+    .primary { background: #2563eb; color: white; }
+    .muted { background: #e5e7eb; color: #111; margin-left: 8px; }
+    #status { margin-top: 14px; font-size: 14px; color: #066; }
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Ativar notificações</h1>
-    <p>Para receber uma notificação com a mensagem <strong>"boaa"</strong>, clique em "Pedir permissão" e aceite quando o navegador pedir.</p>
+    <p>Clique em “Pedir permissão” e aceite para receber a notificação <b>Boaa</b>.</p>
 
     <div>
       <button id="requestBtn" class="primary">Pedir permissão</button>
-      <button id="testBtn" class="muted">Testar notificação</button>
+      <button id="testBtn" class="muted">Testar</button>
     </div>
 
     <div id="status">Status: <span id="perm">verificando...</span></div>
@@ -33,90 +63,81 @@
   <div id="toast">Boaa ✨</div>
 
   <script>
-    // Elementos
     const requestBtn = document.getElementById('requestBtn');
     const testBtn = document.getElementById('testBtn');
     const permSpan = document.getElementById('perm');
     const toast = document.getElementById('toast');
 
-    // Atualiza status inicial
-    function updatePermissionStatus(){
-      if (!('Notification' in window)){
-        permSpan.textContent = 'Notificações não suportadas neste navegador.';
+    function showToast(msg, time = 2200) {
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', time);
+    }
+
+    function updatePermissionStatus() {
+      if (!('Notification' in window)) {
+        permSpan.textContent = 'não suportado';
+        showToast('Seu navegador não suporta notificações.');
         requestBtn.disabled = true;
         testBtn.disabled = true;
         return;
       }
-      permSpan.textContent = Notification.permission; // 'default', 'granted', 'denied'
-      // se já tiver permissão concedida, desabilita o botão de pedir
-      requestBtn.disabled = (Notification.permission === 'granted');
+      permSpan.textContent = Notification.permission;
+      requestBtn.disabled = Notification.permission === 'granted';
     }
 
     updatePermissionStatus();
 
-    // Mostra um toast simples na página
-    function showInPageToast(text, ms = 2200){
-      toast.textContent = text;
-      toast.style.display = 'block';
-      setTimeout(()=>{ toast.style.display = 'none'; }, ms);
-    }
+    function showBoaaNotification() {
+      if (!('Notification' in window)) return showToast('Sem suporte.');
 
-    // Função que cria a notificação com a mensagem "boaa"
-    function showBoaaNotification(){
-      // Verifica suporte
-      if (!('Notification' in window)) return showInPageToast('Navegador não suporta notificações.');
-
-      // Se permissão concedida, cria a notificação
-      if (Notification.permission === 'granted'){
-        try{
-          const n = new Notification('boaa');
-          // Quando o usuário clicar na notificação, foca a janela
-          n.onclick = () => { window.focus(); n.close(); };
-        } catch(e){
-          // Alguns navegadores pedem service worker em HTTPS; no fallback, só mostra o toast
-          showInPageToast('Não foi possível mostrar notificação do sistema.');
+      if (Notification.permission === 'granted') {
+        try {
+          const n = new Notification('Boaa ✨', {
+            body: 'Você aceitou as notificações!',
+            icon: 'https://cdn-icons-png.flaticon.com/512/190/190411.png', // ícone genérico bonito
+            vibrate: [200, 100, 200],
+            tag: 'boaa-tag'
+          });
+          n.onclick = () => {
+            window.focus();
+            n.close();
+          };
+        } catch (e) {
+          showToast('Erro ao exibir notificação do sistema.');
         }
-        // Também exibimos um toast visual na página
-        showInPageToast('Boaa');
-      } else if (Notification.permission === 'denied'){
-        showInPageToast('Permissão negada. Abra as configurações do navegador para habilitar.');
+        showToast('Boaa ✨');
+      } else if (Notification.permission === 'denied') {
+        showToast('Permissão negada. Vá nas configurações e permita.');
       } else {
-        // permission === 'default'
-        showInPageToast('Peça permissão primeiro.');
+        showToast('Peça permissão primeiro.');
       }
     }
 
-    // Ao clicar em pedir permissão
-    requestBtn.addEventListener('click', async () => {
-      if (!('Notification' in window)) return;
-      try{
-        const result = await Notification.requestPermission(); // 'granted' | 'denied' | 'default'
-        updatePermissionStatus();
-        if (result === 'granted'){
-          // Assim que o usuário ACEITAR, mostramos a notificação "boaa"
-          showBoaaNotification();
-        } else if (result === 'denied'){
-          showInPageToast('Você negou a permissão.');
-        } else {
-          showInPageToast('Você fechou a caixa de permissão sem responder.');
-        }
-      } catch(err){
-        showInPageToast('Erro ao pedir permissão.');
+    async function askPermission() {
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        showToast('⚠️ Use HTTPS ou localhost para funcionar.');
+        return;
       }
-    });
 
-    // Botão de teste: tenta mostrar a notificação (se já tiver permissão)
-    testBtn.addEventListener('click', () => {
-      showBoaaNotification();
-    });
+      try {
+        const result = await Notification.requestPermission();
+        updatePermissionStatus();
+        if (result === 'granted') {
+          showBoaaNotification();
+        } else if (result === 'denied') {
+          showToast('Você negou a permissão.');
+        } else {
+          showToast('Permissão não escolhida.');
+        }
+      } catch {
+        showToast('Erro ao pedir permissão.');
+      }
+    }
 
-    // Dica: atualiza status se o usuário mudou a permissão fora da página
-    // (não existe um evento oficial para isso, então refazemos a checagem quando a página ganha foco)
+    requestBtn.addEventListener('click', askPermission);
+    testBtn.addEventListener('click', showBoaaNotification);
     window.addEventListener('focus', updatePermissionStatus);
-
-    // Nota: para que as notificações do sistema funcionem normalmente o site precisa estar sob HTTPS
-    // ou em localhost durante desenvolvimento.
   </script>
 </body>
 </html>
-
