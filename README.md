@@ -1,165 +1,87 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Notificação Boaa</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: #f3f4f6;
-      margin: 0;
-    }
-    .card {
-      background: white;
-      padding: 28px;
-      border-radius: 12px;
-      box-shadow: 0 6px 20px rgba(2,6,23,0.08);
-      width: 360px;
-      text-align: center;
-    }
-    h1 { margin: 0 0 12px; font-size: 20px; }
-    p { margin: 0 0 18px; color: #444; }
-    button {
-      cursor: pointer;
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: 0;
-      font-weight: 600;
-    }
-    .primary { background: #2563eb; color: white; }
-    .muted { background: #e5e7eb; color: #111; margin-left: 8px; }
-    #status { margin-top: 14px; font-size: 14px; color: #066; }
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #111;
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 8px;
-      display: none;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notificação Automática</title>
+<style>
+body {font-family:sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f3f4f6; margin:0;}
+.card {background:white; padding:28px; border-radius:12px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.1); width:360px;}
+button {padding:10px 16px; border:none; border-radius:10px; cursor:pointer; font-weight:600;}
+.primary {background:#2563eb;color:white;}
+#toast {position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#111;color:white; padding:10px 14px; border-radius:8px; display:none;}
+</style>
 </head>
 <body>
-  <div class="card">
-    <h1>Ativar notificações</h1>
-    <p>Clique em “Pedir permissão” e aceite para receber a notificação <b>Boaa</b>.</p>
+<div class="card">
+<h1>Ativar notificações</h1>
+<p>Clique em “Pedir permissão” e aceite para receber notificações.</p>
+<button id="btnPerm" class="primary">Pedir permissão</button>
+<div id="status">Status: <span id="perm">verificando...</span></div>
+</div>
+<div id="toast">Boaa ✨</div>
 
-    <div>
-      <button id="requestBtn" class="primary">Pedir permissão</button>
-      <button id="testBtn" class="muted">Testar</button>
-    </div>
+<script>
+// 🔹 CONFIGURAÇÃO: true = ativa notificação automática depois de 30s
+const autoNotify = true;
+const notifyDelay = 30000; // 30 segundos
 
-    <div id="status">Status: <span id="perm">verificando...</span></div>
-  </div>
+const btnPerm = document.getElementById('btnPerm');
+const permSpan = document.getElementById('perm');
+const toast = document.getElementById('toast');
+let notifyTimer;
 
-  <div id="toast">Boaa ✨</div>
+function showToast(msg,time=2200){toast.textContent=msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none',time);}
 
-  <script>
-    // 🔹 REGISTRA O SERVICE WORKER (necessário no Android/HTTPS)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log('✅ Service Worker registrado com sucesso'))
-        .catch(err => console.error('❌ Erro ao registrar SW:', err));
-    }
+function updatePermissionStatus(){
+  if(!('Notification' in window)){permSpan.textContent='não suportado'; showToast('Seu navegador não suporta notificações.'); btnPerm.disabled=true; return;}
+  permSpan.textContent = Notification.permission;
+  btnPerm.disabled = Notification.permission==='granted';
+}
 
-    // 🔧 Configuração — altere para false pra desativar o aviso automático
-    const autoNotify = true; 
+// 🔹 REGISTRA SERVICE WORKER
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js')
+  .then(()=>console.log('✅ SW registrado'))
+  .catch(err=>console.error('❌ Erro ao registrar SW:',err));
+}
 
-    const requestBtn = document.getElementById('requestBtn');
-    const testBtn = document.getElementById('testBtn');
-    const permSpan = document.getElementById('perm');
-    const toast = document.getElementById('toast');
-    let notifyTimer;
+updatePermissionStatus();
 
-    function showToast(msg, time = 2200) {
-      toast.textContent = msg;
-      toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', time);
-    }
+function showNotification(title, body, url){
+  if(Notification.permission==='granted'){
+    navigator.serviceWorker.ready.then(reg=>{
+      reg.showNotification(title,{
+        body:body,
+        icon:'https://cdn-icons-png.flaticon.com/512/2488/2488921.png',
+        data:{url:url},
+        vibrate:[200,100,200],
+        tag:'auto-notify'
+      });
+    });
+    showToast(title);
+  }else{showToast('Permissão não concedida.');}
+}
 
-    function updatePermissionStatus() {
-      if (!('Notification' in window)) {
-        permSpan.textContent = 'não suportado';
-        showToast('Seu navegador não suporta notificações.');
-        requestBtn.disabled = true;
-        testBtn.disabled = true;
-        return;
-      }
-      permSpan.textContent = Notification.permission;
-      requestBtn.disabled = Notification.permission === 'granted';
-    }
+function startAutoNotify(){
+  if(!autoNotify) return;
+  clearTimeout(notifyTimer);
+  notifyTimer=setTimeout(()=>showNotification('Ai o crédito 💸','Clique aqui pra ver o link!','https://chatgpt.com/'),notifyDelay);
+}
 
+async function askPermission(){
+  if(window.location.protocol!=='https:' && window.location.hostname!=='localhost'){
+    showToast('⚠️ Use HTTPS ou localhost para funcionar.');
+    return;
+  }
+  try{
+    const res = await Notification.requestPermission();
     updatePermissionStatus();
+    if(res==='granted'){startAutoNotify();}
+  }catch{showToast('Erro ao pedir permissão.');}
+}
 
-    function showBoaaNotification() {
-      if (!('Notification' in window)) return showToast('Sem suporte.');
-
-      if (Notification.permission === 'granted') {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification('Boaa ✨', {
-            body: 'Você aceitou as notificações!',
-            icon: 'https://cdn-icons-png.flaticon.com/512/190/190411.png',
-            vibrate: [200, 100, 200],
-            tag: 'boaa-tag'
-          });
-        });
-        showToast('Boaa ✨');
-      } else if (Notification.permission === 'denied') {
-        showToast('Permissão negada. Vá nas configurações e permita.');
-      } else {
-        showToast('Peça permissão primeiro.');
-      }
-    }
-
-    // 🔔 Notificação automática depois de 1 minuto
-    function startAutoNotificationTimer() {
-      if (!autoNotify) return;
-      clearTimeout(notifyTimer);
-      notifyTimer = setTimeout(() => {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification('Ai o crédito 💸', {
-            body: 'Clique aqui pra ver o link!',
-            icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488921.png',
-            data: { url: 'https://chatgpt.com/' },
-            tag: 'credito-notify'
-          });
-        });
-      }, 10000); // 1 minuto
-    }
-
-    async function askPermission() {
-      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-        showToast('⚠️ Use HTTPS ou localhost para funcionar.');
-        return;
-      }
-
-      try {
-        const result = await Notification.requestPermission();
-        updatePermissionStatus();
-        if (result === 'granted') {
-          showBoaaNotification();
-          startAutoNotificationTimer();
-        } else if (result === 'denied') {
-          showToast('Você negou a permissão.');
-        } else {
-          showToast('Permissão não escolhida.');
-        }
-      } catch {
-        showToast('Erro ao pedir permissão.');
-      }
-    }
-
-    requestBtn.addEventListener('click', askPermission);
-    testBtn.addEventListener('click', showBoaaNotification);
-    window.addEventListener('focus', updatePermissionStatus);
-  </script>
+btnPerm.addEventListener('click',askPermission);
+</script>
 </body>
 </html>
