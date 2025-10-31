@@ -70,10 +70,14 @@
         .catch(err => console.error('❌ Erro ao registrar SW:', err));
     }
 
+    // 🔧 Configuração — altere para false pra desativar o aviso automático
+    const autoNotify = true; 
+
     const requestBtn = document.getElementById('requestBtn');
     const testBtn = document.getElementById('testBtn');
     const permSpan = document.getElementById('perm');
     const toast = document.getElementById('toast');
+    let notifyTimer;
 
     function showToast(msg, time = 2200) {
       toast.textContent = msg;
@@ -115,6 +119,22 @@
       }
     }
 
+    // 🔔 Notificação automática depois de 1 minuto
+    function startAutoNotificationTimer() {
+      if (!autoNotify) return;
+      clearTimeout(notifyTimer);
+      notifyTimer = setTimeout(() => {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification('Ai o crédito 💸', {
+            body: 'Clique aqui pra ver o link!',
+            icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488921.png',
+            data: { url: 'https://chatgpt.com/' },
+            tag: 'credito-notify'
+          });
+        });
+      }, 60000); // 1 minuto
+    }
+
     async function askPermission() {
       if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
         showToast('⚠️ Use HTTPS ou localhost para funcionar.');
@@ -126,6 +146,7 @@
         updatePermissionStatus();
         if (result === 'granted') {
           showBoaaNotification();
+          startAutoNotificationTimer();
         } else if (result === 'denied') {
           showToast('Você negou a permissão.');
         } else {
