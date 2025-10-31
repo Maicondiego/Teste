@@ -1,4 +1,4 @@
-<!docctype html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
@@ -63,6 +63,13 @@
   <div id="toast">Boaa ✨</div>
 
   <script>
+    // 🔹 REGISTRA O SERVICE WORKER (necessário no Android/HTTPS)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('✅ Service Worker registrado com sucesso'))
+        .catch(err => console.error('❌ Erro ao registrar SW:', err));
+    }
+
     const requestBtn = document.getElementById('requestBtn');
     const testBtn = document.getElementById('testBtn');
     const permSpan = document.getElementById('perm');
@@ -92,20 +99,14 @@
       if (!('Notification' in window)) return showToast('Sem suporte.');
 
       if (Notification.permission === 'granted') {
-        try {
-          const n = new Notification('Boaa ✨', {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification('Boaa ✨', {
             body: 'Você aceitou as notificações!',
-            icon: 'https://cdn-icons-png.flaticon.com/512/190/190411.png', // ícone genérico bonito
+            icon: 'https://cdn-icons-png.flaticon.com/512/190/190411.png',
             vibrate: [200, 100, 200],
             tag: 'boaa-tag'
           });
-          n.onclick = () => {
-            window.focus();
-            n.close();
-          };
-        } catch (e) {
-          showToast('Erro ao exibir notificação do sistema.');
-        }
+        });
         showToast('Boaa ✨');
       } else if (Notification.permission === 'denied') {
         showToast('Permissão negada. Vá nas configurações e permita.');
