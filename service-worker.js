@@ -1,15 +1,24 @@
 // service-worker.js
 
-self.addEventListener('install', event => {
+self.addEventListener('install', () => {
   console.log('Service Worker instalado.');
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', () => {
   console.log('Service Worker ativo.');
 });
 
-// Quando a notificação for clicada
+// Quando clicar na notificação
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
+
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });
