@@ -11,5 +11,13 @@ self.addEventListener('activate', event => {
 // Quando a notificação for clicada
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({type:'window', includeUncontrolled:true}).then(clientsArr => {
+      for(const client of clientsArr){
+        if(client.url === url && 'focus' in client) return client.focus();
+      }
+      if(clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });
